@@ -47,3 +47,23 @@ description: Concord shared work-state tools for coding agents
 alwaysApply: true
 ---
 `;
+
+/**
+ * Machine-wide block written into each harness's global instruction file, so
+ * agents use Concord in every repository, including ones never set up.
+ */
+export const GLOBAL_CONCORD_INSTRUCTIONS = `## Concord — shared work-state (machine-wide)
+
+Concord is installed on this machine, and the user wants agents to use it in
+every repository, including repositories where it has not been set up yet.
+
+- If the repository root has no \`.concord/\` directory, set Concord up yourself
+  before you edit: run \`concord setup --no-adapters\` from the repository root.
+  Tell the user it ran and which files it wrote; they decide whether to commit
+  them. \`.concord/\` itself is ignored by git.
+- If Concord's MCP tools (\`start_work\`, \`inspect_work\`, \`update_work\`,
+  \`transfer_work\`, \`finish_work\`) are available, use them: \`start_work\`
+  before editing and \`finish_work\` before finishing.
+- If the tools are still unavailable after setup, tell the user once to restart
+  their coding client (and approve the project's \`concord\` MCP server), then
+  carry on with the task.`;

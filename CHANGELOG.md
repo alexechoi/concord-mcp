@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `concord setup` asks once per machine (default yes) whether agents should use
+  Concord in repositories where it is not set up. If you say yes, it writes a
+  managed block into each harness's machine-wide instructions (Claude Code,
+  Codex, Gemini, Goose). This block tells agents to run `concord setup`
+  themselves. The answer is saved in `~/.concord/config.json`; change it with
+  `--global-instructions` / `--no-global-instructions`.
+
 ## [0.12.0] - 2026-10-09
 
 ### Added

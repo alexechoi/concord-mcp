@@ -75,6 +75,17 @@ adapters independently. Use `--no-adapters` to skip that step or
 Pass `--no-mcp` to write only the workspace and instructions while managing MCP
 registration yourself.
 
+The first time you run setup on a machine, it asks whether agents should use
+Concord even in repositories where it is not set up (default: yes). If you say
+yes, setup adds a short Concord block to each harness's machine-wide
+instructions (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`,
+and Goose's global `.goosehints`). This tells agents in an unconfigured
+repository to run `concord setup` themselves. Nothing is committed to any
+repository. Your answer is saved in `~/.concord/config.json`. Change it with
+`--global-instructions` or `--no-global-instructions`; the second also removes
+the block. Cursor and Grok keep user-level rules in app settings, so they are not
+covered.
+
 </details>
 
 ## Supported agents

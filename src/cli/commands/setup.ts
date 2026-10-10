@@ -7,6 +7,11 @@ import { createInterface } from 'node:readline/promises';
 import { writeArtifacts } from '../../artifacts/index.js';
 import { installClaudeHook } from '../../install/claude-hooks.js';
 import { installCodexMcpConfig } from '../../install/codex-config.js';
+import {
+  globalInstructionTargets,
+  installGlobalInstructions,
+  removeGlobalInstructions,
+} from '../../install/global-instructions.js';
 import { installConcord } from '../../install/index.js';
 import {
   installGlobalAdapters,
@@ -18,7 +23,9 @@ import {
   installMcpConfigs,
   removeGlobalCursorConcord,
 } from '../../install/mcp-config.js';
+import { readPreferences, savePreferences } from '../../config/preferences.js';
 import { openContext } from '../context.js';
+import { askGlobalInstructions, resolveGlobalPreference } from '../global-preference.js';
 import { findAvailableUpdate, type AvailableUpdate } from '../../update-notifier.js';
 import { VERSION } from '../../version.js';
 
@@ -31,6 +38,8 @@ export interface SetupOptions {
   mcp?: boolean;
   adapters?: boolean;
   requireAdapters?: boolean;
+  /** Write (true) or remove (false) machine-wide harness instructions; undefined leaves them. */
+  globalInstructions?: boolean;
   env?: NodeJS.ProcessEnv;
 }
 
@@ -147,6 +156,14 @@ export function runSetup(cwd: string, options: SetupOptions = {}): SetupResult {
   if (options.claudeHooks === true) {
     written.push(installClaudeHook(ctx.repoRoot));
   }
+  if (options.globalInstructions !== undefined) {
+    const targets = globalInstructionTargets(env);
+    written.push(
+      ...(options.globalInstructions
+        ? installGlobalInstructions(targets)
+        : removeGlobalInstructions(targets)),
+    );
+  }
   if (options.mcp !== false) {
     written.push(...installMcpConfigs(ctx.repoRoot));
     const migratedCursorConfig = removeGlobalCursorConcord(env);
@@ -193,9 +210,24 @@ export function registerSetupCommand(program: Command): void {
     .option('--no-mcp', 'skip MCP client registration; write local state and instructions only')
     .option('--no-adapters', 'skip global harness adapter installation')
     .option('--require-adapters', 'fail unless every detected harness adapter is ready')
+    .option(
+      '--global-instructions',
+      "write Concord instructions into each harness's machine-wide config (asked on first run)",
+    )
+    .option('--no-global-instructions', 'remove Concord from machine-wide harness instructions')
     .action(async (options) => {
       try {
         if (await maybeUpgradeBeforeSetup()) return;
+
+        const interactive = process.stdin.isTTY && process.stdout.isTTY;
+        const globalPreference = await resolveGlobalPreference({
+          flag: options.globalInstructions,
+          saved: readPreferences(process.env).globalInstructions,
+          ask: interactive ? askGlobalInstructions : undefined,
+        });
+        if (globalPreference.save && globalPreference.enabled !== undefined) {
+          savePreferences(process.env, { globalInstructions: globalPreference.enabled });
+        }
 
         const setupOptions: SetupOptions = {
           mcp: options.mcp,
@@ -204,6 +236,9 @@ export function registerSetupCommand(program: Command): void {
         };
         if (options.claudeHooks === true) {
           setupOptions.claudeHooks = true;
+        }
+        if (globalPreference.enabled !== undefined) {
+          setupOptions.globalInstructions = globalPreference.enabled;
         }
         const result = runSetup(process.cwd(), setupOptions);
         process.stdout.write(

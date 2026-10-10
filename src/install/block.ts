@@ -23,3 +23,19 @@ export function upsertBlock(existing: string, block: string): string {
   const separator = existing.endsWith('\n') ? '\n' : '\n\n';
   return `${existing}${separator}${wrapped}\n`;
 }
+
+/**
+ * Remove Concord's managed block, and the blank line that separated it, from
+ * `existing`. Every other line is kept; content without a block is unchanged.
+ */
+export function removeBlock(existing: string): string {
+  const startIdx = existing.indexOf(BLOCK_START);
+  const endIdx = existing.indexOf(BLOCK_END);
+  if (startIdx === -1 || endIdx < startIdx) {
+    return existing;
+  }
+  const before = existing.slice(0, startIdx).replace(/\n+$/u, '\n');
+  const after = existing.slice(endIdx + BLOCK_END.length).replace(/^\n/u, '');
+  const joined = `${before}${after}`;
+  return joined === '\n' ? '' : joined;
+}
